@@ -23,44 +23,41 @@ module hw2
     integer :: i1,N,NRHS,LDA,LDB,INFO
     real(kind=8), dimension(:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
     real(kind=8), intent(out) :: xf(size(xguess)),jf !location of minimum, minimum cost
-    real(kind=8), allocatable, dimension(:,:) :: Htemp,Gtemp,h,G
-    real(kind=8) :: j1,j2,jh(size(xguess),size(xguess)),jg(size(xguess))
+    real(kind=8), allocatable, dimension(:,:) :: Htemp!,Gtemp,G
+    real(kind=8) :: x(size(xguess)),j1,j2,jh(size(xguess),size(xguess)),jg(size(xguess))
+    real(kind=8) :: h(size(xguess)),G(size(xguess)),Gtemp(size(xguess))
     logical :: flag_converged
     integer, allocatable, dimension(:) :: IPIV
 
-  !  x=xguess
+    x=xguess
     N=size(xguess)
     NRHS = 1
     LDA = N
     LDB = N
 
-    allocate(Htemp(N,N),Gtemp(N,1),h(N,1),G(N,1),IPIV(N))
+  !  allocate(xpath(size(xguess):1),jpath(size(xguess)))
+    allocate(Htemp(N,N),IPIV(N))
     !print *, x
 
-    do i1=1,10!(itermax)
-        call costj(xguess,j1)
-        call costj_grad2d(xguess,jg)
-        call costj_hess2d(xguess,jh)
+    do i1=1,100!(itermax)
+        call costj(x,j1)
+        call costj_grad2d(x,jg)
+        call costj_hess2d(x,jh)
 
-        print *, 'j1=',j1
-
-        G(:,1)=jg
+        G=jg
         Htemp = jh
         Gtemp = G
         call dgesv(N, NRHS, Htemp, LDA, IPIV, Gtemp, LDB, INFO)
-        !extract soln from Btemp
-        h = Gtemp(1:N,:)
-        print *, 'h=',h, size(h), size(xguess)
+        !extract soln from Gtemp
+        h = -Gtemp
+        x=x+h
+        call costj(x,j2)
 
-        !xguess=xguess+h
-      !   call costj(xguess,j2)
-      !   print *, 'h=',h,'j2=',j2
-      !
-      !   call convergence_check(j1,j2,flag_converged)
-      !   if (flag_converged) exit
+        call convergence_check(j1,j2,flag_converged)
+        if (flag_converged) exit
     end do
 
-    xf=xguess
+    xf=x
     jf=j2
 
   end subroutine newton
@@ -116,7 +113,6 @@ module hw2
     else
       flag_converged = .False.
     end if
-    print *, test, tol
   end subroutine convergence_check
 
 
@@ -131,10 +127,10 @@ program test
   real(kind=8), dimension(2) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess=(/2.d0,2.d0/)
+  xguess=(/2.d0,10.d0/)
 
   call newton(xguess,xf,jf)
   !call costj_hess2d(xguess,jh)
-  print *, 'test',jf
+  print *, 'test','x=',xf,'j=',jf
 
 end program test
