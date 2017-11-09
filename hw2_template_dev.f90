@@ -14,54 +14,61 @@ module hw2
   contains
 
 
-  subroutine newton(xguess,xf,jf)
+  subroutine newton(xguess,xf,jf,i2)
     !Use Newton's method to minimize cost function, costj
     !input: xguess -- initial guess for loaction of minimum
     !output: xf -- computed location of minimum, jf -- computed minimum
     !Should also set module variables xpath and jpath appropriately
     implicit none
-    integer :: i2,i1,N,NRHS,LDA,LDB,INFO
     real(kind=8), dimension(:,:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
+    integer, intent(out) :: i2
     real(kind=8), intent(out) :: xf(size(xguess),1),jf !location of minimum, minimum cost
-    real(kind=8), allocatable :: Htemp(:,:),Gtemp(:,:),h(:,:),jg(:,:)
-    real(kind=8) :: j1,j2,jh(size(xguess),size(xguess))
+    real(kind=8), allocatable :: Htemp(:,:),Gtemp(:,:),h(:,:),jg(:,:),jh(:,:),xpath2(:,:)
+    real(kind=8) :: j1,j2
+    integer :: l,i1,N,NRHS,LDA,LDB,INFO
     logical :: flag_converged
     integer, allocatable, dimension(:) :: IPIV
 
-
-    allocate(xpath(size(xguess),itermax),jpath(itermax))
-    xpath(:,1)=xguess(:,1)
     N=size(xguess)
     NRHS = 1
     LDA = N
     LDB = N
 
-  !  allocate(xpath(size(xguess):1),jpath(size(xguess)))
-    allocate(Htemp(size(jh,1),size(jh,2)),IPIV(N),jg(N,1),Gtemp(N,1))
-    allocate(h(N,1))
-    !print *, x
-    call costj(xpath(:,i1),j2)
-    do i1=1,100!(itermax)
-        j1=j2
-        call costj_grad2d(xpath(:,i1),jg(:,1))
-        call costj_hess2d(xpath(:,i1),jh)
+    if (allocated(jpath)) deallocate(jpath)
+    if (allocated(xpath)) deallocate(xpath)
+
+    allocate(xpath2(N,itermax),jpath(itermax))
+    xpath2(:,1)=xguess(:,1)
+
+
+    allocate(jh(N,N),Htemp(N,N),IPIV(N),jg(N,1),Gtemp(N,1),h(N,1))
+
+    call costj(xpath2(:,i1),j2)
+    do i1=1,(itermax)
+        jpath(i1)=j2
+        call costj_grad2d(xpath2(:,i1),jg(:,1))
+        call costj_hess2d(xpath2(:,i1),jh)
 
         Htemp = -jh
         Gtemp = jg
         call dgesv(N, NRHS, Htemp, LDA, IPIV, Gtemp, LDB, INFO)
         !extract soln from Gtemp
         h = Gtemp(1:N,:)
-        xpath(:,i1+1)=xpath(:,i1)+h(:,1)
-        call costj(xpath(:,i1+1),j2)
-        i2=i1
-        call convergence_check(j1,j2,flag_converged)
+        xpath2(:,i1+1)=xpath2(:,i1)+h(:,1)
+        call costj(xpath2(:,i1+1),j2)
+        l=i1
+        call convergence_check(jpath(i1),j2,flag_converged)
         if (flag_converged) exit
 
     end do
 
+    i2=l
+    allocate(xpath(N,i2+1))
+    xpath(:,:)=xpath2(:,1:i2+1)
     xf(:,1)=xpath(:,i2+1)
     jf=j2
 
+    deallocate(xpath2,jh,Htemp,IPIV,jg,Gtemp,h)
   end subroutine newton
 
 
@@ -110,6 +117,7 @@ module hw2
     logical, intent(out) :: flag_converged
 
     test = abs(j1-j2)/max(abs(j1),abs(j2),1.d0)
+    print *, test
     if (test .le. tol) then
       flag_converged = .True.
     else
@@ -126,12 +134,13 @@ end module hw2
 program test
   use hw2
   implicit none
+  integer :: i2
   real(kind=8), dimension(2,1) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:,1)=(/2.d0,10.d0/)
+  xguess(:,1)=(/5.d0,2.d0/)
 
-  call newton(xguess,xf,jf)
+  call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
   print *, 'test','x=',xf,'j=',jf
 

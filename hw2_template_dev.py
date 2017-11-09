@@ -53,9 +53,27 @@ def newton_test(xg,display=False):
     Further output can be added to the tuple, output, as needed. It may also
     be left empty.
     """
+    hw2.tol=10**(-6)
+    hw2.itermax=1000
+    hw2.newton(xg)
+    X,Y=hw2.xpath
+    xf=[X[-1],Y[-1]]
+
+    f, (p1,p2) = plt.subplots(1,2)
+    p1.plot(X,Y)
+    p1.set_xlabel('X1-location')
+    p1.set_ylabel('X2-location')
+    p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
+    p2.set_xlabel('Iteration number')
+    p2.set_ylabel('distance from converged minimum')
+    plt.suptitle('Rosemary Teague, Newton_test \n Rate of convergence of a cost function')
+    plt.savefig('hw221', dpi=700)
+
+
     output = ()
 
 
+    jf=cost.costj(xf)
     return xf,jf,output
 
 
