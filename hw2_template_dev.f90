@@ -21,15 +21,15 @@ module hw2
     !Should also set module variables xpath and jpath appropriately
     implicit none
     integer :: i1,N,NRHS,LDA,LDB,INFO
-    real(kind=8), dimension(:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
-    real(kind=8), intent(out) :: xf(size(xguess)),jf !location of minimum, minimum cost
-    real(kind=8), allocatable, dimension(:,:) :: Htemp!,Gtemp,G
-    real(kind=8) :: x(size(xguess)),j1,j2,jh(size(xguess),size(xguess)),jg(size(xguess))
+    real(kind=8), dimension(:,:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
+    real(kind=8), intent(out) :: xf(size(xguess),1),jf !location of minimum, minimum cost
+    real(kind=8), allocatable :: Htemp(:,:)!,Gtemp,G
+    real(kind=8) :: x(size(xguess),1),j1,j2,jh(size(xguess),size(xguess)),jg(size(xguess))
     real(kind=8) :: h(size(xguess)),G(size(xguess)),Gtemp(size(xguess))
     logical :: flag_converged
     integer, allocatable, dimension(:) :: IPIV
 
-    x=xguess
+    xpath=xguess
     N=size(xguess)
     NRHS = 1
     LDA = N
@@ -40,9 +40,9 @@ module hw2
     !print *, x
 
     do i1=1,100!(itermax)
-        call costj(x,j1)
-        call costj_grad2d(x,jg)
-        call costj_hess2d(x,jh)
+        call costj(xpath(:,i1),j1)
+        call costj_grad2d(xpath(:,i1),jg)
+        call costj_hess2d(xpath(:,i1),jh)
 
         G=jg
         Htemp = jh
@@ -50,14 +50,14 @@ module hw2
         call dgesv(N, NRHS, Htemp, LDA, IPIV, Gtemp, LDB, INFO)
         !extract soln from Gtemp
         h = -Gtemp
-        x=x+h
-        call costj(x,j2)
-
+        xpath(:,i1+1)=xpath(:,i1)+h
+        call costj(x(:,i1+1),j2)
+        print *,'running=', xpath(:,i1+1)
         call convergence_check(j1,j2,flag_converged)
         if (flag_converged) exit
     end do
 
-    xf=x
+    xf=xpath(:,shape(xpath(1,:))-1)
     jf=j2
 
   end subroutine newton
@@ -124,10 +124,10 @@ end module hw2
 program test
   use hw2
   implicit none
-  real(kind=8), dimension(2) :: xguess, xf
+  real(kind=8), dimension(2,1) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess=(/2.d0,10.d0/)
+  xguess(:,1)=(/2.d0,10.d0/)
 
   call newton(xguess,xf,jf)
   !call costj_hess2d(xguess,jh)
