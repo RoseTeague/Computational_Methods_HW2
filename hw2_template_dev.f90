@@ -20,44 +20,46 @@ module hw2
     !output: xf -- computed location of minimum, jf -- computed minimum
     !Should also set module variables xpath and jpath appropriately
     implicit none
-    integer :: i1,N,NRHS,LDA,LDB,INFO
+    integer :: i2,i1,N,NRHS,LDA,LDB,INFO
     real(kind=8), dimension(:,:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
     real(kind=8), intent(out) :: xf(size(xguess),1),jf !location of minimum, minimum cost
-    real(kind=8), allocatable :: Htemp(:,:)!,Gtemp,G
-    real(kind=8) :: x(size(xguess),1),j1,j2,jh(size(xguess),size(xguess)),jg(size(xguess))
-    real(kind=8) :: h(size(xguess)),G(size(xguess)),Gtemp(size(xguess))
+    real(kind=8), allocatable :: Htemp(:,:),Gtemp(:,:),h(:,:),jg(:,:)
+    real(kind=8) :: j1,j2,jh(size(xguess),size(xguess))
     logical :: flag_converged
     integer, allocatable, dimension(:) :: IPIV
 
-    xpath=xguess
+
+    allocate(xpath(size(xguess),itermax),jpath(itermax))
+    xpath(:,1)=xguess(:,1)
     N=size(xguess)
     NRHS = 1
     LDA = N
     LDB = N
 
   !  allocate(xpath(size(xguess):1),jpath(size(xguess)))
-    allocate(Htemp(N,N),IPIV(N))
+    allocate(Htemp(size(jh,1),size(jh,2)),IPIV(N),jg(N,1),Gtemp(N,1))
+    allocate(h(N,1))
     !print *, x
-
+    call costj(xpath(:,i1),j2)
     do i1=1,100!(itermax)
-        call costj(xpath(:,i1),j1)
-        call costj_grad2d(xpath(:,i1),jg)
+        j1=j2
+        call costj_grad2d(xpath(:,i1),jg(:,1))
         call costj_hess2d(xpath(:,i1),jh)
 
-        G=jg
-        Htemp = jh
-        Gtemp = G
+        Htemp = -jh
+        Gtemp = jg
         call dgesv(N, NRHS, Htemp, LDA, IPIV, Gtemp, LDB, INFO)
         !extract soln from Gtemp
-        h = -Gtemp
-        xpath(:,i1+1)=xpath(:,i1)+h
-        call costj(x(:,i1+1),j2)
-        print *,'running=', xpath(:,i1+1)
+        h = Gtemp(1:N,:)
+        xpath(:,i1+1)=xpath(:,i1)+h(:,1)
+        call costj(xpath(:,i1+1),j2)
+        i2=i1
         call convergence_check(j1,j2,flag_converged)
         if (flag_converged) exit
+
     end do
 
-    xf=xpath(:,shape(xpath(1,:))-1)
+    xf(:,1)=xpath(:,i2+1)
     jf=j2
 
   end subroutine newton
