@@ -79,14 +79,37 @@ def newton_test(xg,display=False,i=1):
     return xf,jf,output
 
 
-def bracket_descent_test(xg,display=False):
+def bracket_descent_test(xg,display=False,i=1):
     """ Use bracket-descent to minimize cost function defined in cost module
     Input variable xg is initial guess for location of minimum. When display
     is true, 1-2 figures comparing the B-D and Newton steps should be generated
 
     Output variables: xf -- computed location of minimum, jf -- computed minimum
     """
+    hw2.tol=10**(-6)
+    hw2.itermax=1000
+    hw2.bracket_descent(xg)
+    X,Y=hw2.xpath
+    xf=[X[-1],Y[-1]]
+    jf=hw2.jpath[-1]
 
+
+    if display:
+        f, (p1,p2) = plt.subplots(1,2)
+        p1.plot(X,Y)
+        p1.set_xlabel('X1-location')
+        p1.set_ylabel('X2-location')
+        p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
+        p2.set_xlabel('Iteration number')
+        p2.set_ylabel('distance from converged minimum')
+        plt.suptitle('Rosemary Teague, bracket_descent_test, initial guess ='+str(xg)+' \n Rate of convergence of a cost function')
+        plt.tight_layout(pad=4)
+        plt.savefig('hw32'+str(i), dpi=700)
+
+
+
+
+    jf=cost.costj(xf)
     return xf,jf
 
 
@@ -94,6 +117,12 @@ def performance():
     """ Assess performance of B-D and L-BFGS-B methods. Add input/output as
     needed
     """
+
+    xfbd,jfbd,i2=hw2.bracket_descent([-100,-3])
+    print('method= ', 'Fortran Bracket Descent')
+    print('Value= ', jfbd)
+    print('number of iterations', i2)
+    print('x=', xfbd)
 
 
 if __name__ == '__main__':
@@ -103,3 +132,7 @@ if __name__ == '__main__':
     newton_test([10.,10.],display=True,i=1)
     newton_test([5.,5.],display=True,i=2)
     newton_test([2.,2.],display=True,i=3)
+
+    bracket_descent_test([10.,10.],display=True,i=1)
+    bracket_descent_test([5.,5.],display=True,i=2)
+    bracket_descent_test([2.,2.],display=True,i=3)

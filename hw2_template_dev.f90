@@ -72,7 +72,7 @@ module hw2
   end subroutine newton
 
 
-  subroutine bracket_descent(xguess,xf,jf)
+  subroutine bracket_descent(xguess,xf,jf,i2)
     !Use bracket descent method to minimize cost function, costj
     !input: xguess -- initial guess for location of minimum
     !output: xf -- computed location of minimum, jf -- computed minimum
@@ -81,8 +81,10 @@ module hw2
     implicit none
     real(kind=8), dimension(2), intent(in) :: xguess
     real(kind=8), intent(out) :: xf(2),jf !location of minimum, minimum cost
+    integer, intent(out) :: i2
     real(kind=8), dimension(2) :: va, vb, vc, vatemp,vbtemp,vctemp,xm,xstar,xstar3,l
     real(kind=8) :: Ja, Jb, Jc,Jatemp,Jbtemp,Jctemp,Jstar,Jstar2,Jstar3,Jstar4,j1,j2
+    real(kind=8) :: xpath2(2,itermax), jpath2(itermax)
     integer :: i1
     logical :: flag_converged
 
@@ -95,14 +97,20 @@ module hw2
 
     j2=100
 
+    if (allocated(jpath)) deallocate(jpath)
+    if (allocated(xpath)) deallocate(xpath)
 
+    xpath2(:,1)=xguess
+    call costj(xpath2(:,1),jpath2(1))
+
+
+    call costj(va,Ja)
+    call costj(vb,Jb)
+    call costj(vc,Jc)
+    j2=abs(Ja)+abs(Jb)+abs(Jc)
 
     do i1=1,itermax
       j1=j2
-
-      call costj(va,Ja)
-      call costj(vb,Jb)
-      call costj(vc,Jc)
 
       if (Jc>Jb) then
         Jctemp=Jb; vctemp=vb
@@ -140,20 +148,25 @@ module hw2
         call costj(xstar+l,Jstar2)
         if (Jstar2 .lt. Jstar) then
           va = xstar+l
+          Ja = Jstar2
         else
           va = xstar
+          Ja = Jstar
         end if
       elseif (Jstar .le. Ja .and. Jstar .ge. Jc) then
         va = xstar
+        Ja = Jstar
       elseif (Jstar .gt. Ja) then
         xstar3=xstar-l/2
         call costj(xstar3,Jstar3)
         if (Jstar3 .lt. Ja) then
-          va=xstar3
+          va = xstar3
+          Ja = Jstar3
         else
           call costj(xstar-3*l/2,Jstar4)
           if (Jstar4 .lt. Ja) then
             va = xstar-3*l/2
+            Ja = Jstar4
           else
             va = (va+vc)/2.d0
             vb = (vb+vc)/2.d0
@@ -161,19 +174,28 @@ module hw2
         end if
       end if
 
-    j2=abs(Ja)+abs(Jb)+abs(Jc)
+      call costj(va,Ja)
+      call costj(vb,Jb)
+      call costj(vc,Jc)
+
+      j2=abs(Ja)+abs(Jb)+abs(Jc)
+
+      xpath2(:,i1+1)=(va+vb+vc)/3
+      !xpath2(2,i1+1)=(va(2)+vb(2)+vc(2))/3
+      call costj(xpath2(:,i1+1),jpath2(i1+1))
+
+      i2=i1
+
     call convergence_check(j1,j2,flag_converged)
     if (flag_converged) exit
 
-
     end do
 
-
-  print *, 'positions=',va,vb,vc
-  print *, 'values=', Ja, Jb, Jc,Jstar2
-
-  xf=va
-  jf=Ja
+  allocate(xpath(2,i2+1),jpath(i2+1))
+  xpath(:,:)=xpath2(:,1:i2+1)
+  jpath(:)=jpath2(1:i2+1)
+  xf=xpath(:,i2+1)
+  jf=Jpath(size(jpath))
 
   end subroutine bracket_descent
 
@@ -226,14 +248,15 @@ end module hw2
 program test
   use hw2
   implicit none
-  integer :: i2
+  !integer :: i2
   real(kind=8), dimension(2) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:)=(/10.d0,10.d0/)
+  xguess(:)=(/-100.d0,3.d0/)
   call bracket_descent(xguess,xf,jf)
   !call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
   print *, 'test','x=',xf,'j=',jf
+!  print *, 'jpath= ',jpath
 
 end program test
