@@ -81,8 +81,10 @@ module hw2
     implicit none
     real(kind=8), dimension(2), intent(in) :: xguess
     real(kind=8), intent(out) :: xf(2),jf !location of minimum, minimum cost
-    real(kind=8), dimension(2) :: va, vb, vc, vatemp,vbtemp,vctemp,xm,xstar
-    real(kind=8) :: Ja, Jb, Jc,Jatemp,Jbtemp,Jctemp,Jstar
+    real(kind=8), dimension(2) :: va, vb, vc, vatemp,vbtemp,vctemp,xm,xstar,xstar3,l
+    real(kind=8) :: Ja, Jb, Jc,Jatemp,Jbtemp,Jctemp,Jstar,Jstar2,Jstar3,Jstar4,j1,j2
+    integer :: i1
+    logical :: flag_converged
 
     va(1)=xguess(1)
     va(2)=xguess(2)+1.d0
@@ -91,35 +93,84 @@ module hw2
     vc(1)=xguess(1)+sqrt(3.d0)/2.d0
     vc(2)=xguess(2)-1.d0/2.d0
 
-    call costj(va,Ja)
-    call costj(vb,Jb)
-    call costj(vc,Jc)
-
-    if (Jc>Jb) then
-      Jctemp=Jb; vctemp=vb
-      Jbtemp=Jc; vbtemp=vc
-    else
-      Jctemp=Jc; vctemp=vc
-      Jbtemp=Jb; vbtemp=vb
-    end if
-
-    if (Jbtemp>Ja) then
-      Jatemp=Jbtemp; vatemp=vbtemp
-      Jbtemp=Ja; vbtemp=va
-    else
-      Jatemp=Ja; vatemp=va
-    end if
+    j2=100
 
 
-  va=vatemp;vb=vbtemp;vc=vctemp
-  Ja=Jatemp;Jb=Jbtemp;Jc=Jctemp
-  xm=(vb+vc)/2
-  xstar=3*va-2*xm
 
-  call costj(xstar,Jstar)
+    do i1=1,itermax
+      j1=j2
 
-  print *, 'positions=',va,xm,xstar
-  print *, 'values=', Ja, Jb, Jc
+      call costj(va,Ja)
+      call costj(vb,Jb)
+      call costj(vc,Jc)
+
+      if (Jc>Jb) then
+        Jctemp=Jb; vctemp=vb
+        Jbtemp=Jc; vbtemp=vc
+      else
+        Jctemp=Jc; vctemp=vc
+        Jbtemp=Jb; vbtemp=vb
+      end if
+
+      if (Jbtemp>Ja) then
+        Jatemp=Jbtemp; vatemp=vbtemp
+        Jbtemp=Ja; vbtemp=va
+        if (Jctemp>Jbtemp) then
+          Ja=Jatemp; va = vatemp
+          Jb=Jctemp; vb = vctemp
+          Jc=Jbtemp; vc = vbtemp
+        else
+          Ja=Jatemp; va = vatemp
+          Jb=Jbtemp; vb = vbtemp
+          Jc=Jctemp; vc = vctemp
+        end if
+      else
+        Jb = Jbtemp; vb = vbtemp
+        Jc = Jctemp; vc = vctemp
+      end if
+
+
+      xm=(vb+vc)/2.d0
+      l=xm-va
+      xstar=va+2*l
+
+      call costj(xstar,Jstar)
+
+      if (Jstar .lt. Jc) then
+        call costj(xstar+l,Jstar2)
+        if (Jstar2 .lt. Jstar) then
+          va = xstar+l
+        else
+          va = xstar
+        end if
+      elseif (Jstar .le. Ja .and. Jstar .ge. Jc) then
+        va = xstar
+      elseif (Jstar .gt. Ja) then
+        xstar3=xstar-l/2
+        call costj(xstar3,Jstar3)
+        if (Jstar3 .lt. Ja) then
+          va=xstar3
+        else
+          call costj(xstar-3*l/2,Jstar4)
+          if (Jstar4 .lt. Ja) then
+            va = xstar-3*l/2
+          else
+            va = (va+vc)/2.d0
+            vb = (vb+vc)/2.d0
+          end if
+        end if
+      end if
+
+    j2=abs(Ja)+abs(Jb)+abs(Jc)
+    call convergence_check(j1,j2,flag_converged)
+    if (flag_converged) exit
+
+
+    end do
+
+
+  print *, 'positions=',va,vb,vc
+  print *, 'values=', Ja, Jb, Jc,Jstar2
 
   xf=va
   jf=Ja
@@ -179,7 +230,7 @@ program test
   real(kind=8), dimension(2) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:)=(/5.d0,2.d0/)
+  xguess(:)=(/10.d0,10.d0/)
   call bracket_descent(xguess,xf,jf)
   !call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
