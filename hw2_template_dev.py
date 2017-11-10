@@ -39,11 +39,11 @@ def visualize(Nx,Ny,xrange=10,yrange=10):
     cbar = fig.colorbar(cpn)
     plt.title('Rosemary Teague, Visualize \n 2D cost function, noise amplitude='+str(cost.c_noise_amp))
     plt.savefig('hw212', dpi = 700)
-    plt.show()
+    #plt.show()
 
 
 
-def newton_test(xg,display=False):
+def newton_test(xg,display=False,i=1):
     """ Use Newton's method to minimize cost function defined in cost module
     Input variable xg is initial guess for location of minimum. When display
     is true, a figure illustrating the convergence of the method should be
@@ -58,21 +58,23 @@ def newton_test(xg,display=False):
     hw2.newton(xg)
     X,Y=hw2.xpath
     xf=[X[-1],Y[-1]]
+    jf=hw2.jpath[-1]
 
-    f, (p1,p2) = plt.subplots(1,2)
-    p1.plot(X,Y)
-    p1.set_xlabel('X1-location')
-    p1.set_ylabel('X2-location')
-    p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
-    p2.set_xlabel('Iteration number')
-    p2.set_ylabel('distance from converged minimum')
-    plt.suptitle('Rosemary Teague, Newton_test \n Rate of convergence of a cost function')
-    plt.savefig('hw221', dpi=700)
+
+    if display:
+        f, (p1,p2) = plt.subplots(1,2)
+        p1.plot(X,Y)
+        p1.set_xlabel('X1-location')
+        p1.set_ylabel('X2-location')
+        p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
+        p2.set_xlabel('Iteration number')
+        p2.set_ylabel('distance from converged minimum')
+        plt.suptitle('Rosemary Teague, Newton_test, initial guess ='+str(xg)+' \n Rate of convergence of a cost function')
+        plt.tight_layout(pad=4)
+        plt.savefig('hw22'+str(i), dpi=700)
 
 
     output = ()
-
-
     jf=cost.costj(xf)
     return xf,jf,output
 
@@ -98,3 +100,6 @@ if __name__ == '__main__':
     #Add code here to call newton_test, bracket_descent_test, performance
     performance()
     visualize(200,200)
+    newton_test([10.,10.],display=True,i=1)
+    newton_test([5.,5.],display=True,i=2)
+    newton_test([2.,2.],display=True,i=3)

@@ -81,7 +81,48 @@ module hw2
     implicit none
     real(kind=8), dimension(2), intent(in) :: xguess
     real(kind=8), intent(out) :: xf(2),jf !location of minimum, minimum cost
+    real(kind=8), dimension(2) :: va, vb, vc, vatemp,vbtemp,vctemp,xm,xstar
+    real(kind=8) :: Ja, Jb, Jc,Jatemp,Jbtemp,Jctemp,Jstar
 
+    va(1)=xguess(1)
+    va(2)=xguess(2)+1.d0
+    vb(1)=xguess(1)-sqrt(3.d0)/2.d0
+    vb(2)=xguess(2)-1.d0/2.d0
+    vc(1)=xguess(1)+sqrt(3.d0)/2.d0
+    vc(2)=xguess(2)-1.d0/2.d0
+
+    call costj(va,Ja)
+    call costj(vb,Jb)
+    call costj(vc,Jc)
+
+    if (Jc>Jb) then
+      Jctemp=Jb; vctemp=vb
+      Jbtemp=Jc; vbtemp=vc
+    else
+      Jctemp=Jc; vctemp=vc
+      Jbtemp=Jb; vbtemp=vb
+    end if
+
+    if (Jbtemp>Ja) then
+      Jatemp=Jbtemp; vatemp=vbtemp
+      Jbtemp=Ja; vbtemp=va
+    else
+      Jatemp=Ja; vatemp=va
+    end if
+
+
+  va=vatemp;vb=vbtemp;vc=vctemp
+  Ja=Jatemp;Jb=Jbtemp;Jc=Jctemp
+  xm=(vb+vc)/2
+  xstar=3*va-2*xm
+
+  call costj(xstar,Jstar)
+
+  print *, 'positions=',va,xm,xstar
+  print *, 'values=', Ja, Jb, Jc
+
+  xf=va
+  jf=Ja
 
   end subroutine bracket_descent
 
@@ -106,6 +147,7 @@ module hw2
     do i1=1,3
       call costj(x3(i1,:),j3(i1))
     end do
+
   end subroutine bd_initialize
 
 
@@ -117,7 +159,6 @@ module hw2
     logical, intent(out) :: flag_converged
 
     test = abs(j1-j2)/max(abs(j1),abs(j2),1.d0)
-    print *, test
     if (test .le. tol) then
       flag_converged = .True.
     else
@@ -135,12 +176,12 @@ program test
   use hw2
   implicit none
   integer :: i2
-  real(kind=8), dimension(2,1) :: xguess, xf
+  real(kind=8), dimension(2) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:,1)=(/5.d0,2.d0/)
-
-  call newton(xguess,xf,jf,i2)
+  xguess(:)=(/5.d0,2.d0/)
+  call bracket_descent(xguess,xf,jf)
+  !call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
   print *, 'test','x=',xf,'j=',jf
 
