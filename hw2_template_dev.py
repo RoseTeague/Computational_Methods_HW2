@@ -8,6 +8,7 @@ hw2mod.so (filename may also be of form hw2mod.xxx.so where xxx is system-depend
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors, ticker, cm
+import scipy.optimize
 from hw2mod import cost
 from hw2mod import hw2
 
@@ -117,8 +118,9 @@ def performance():
     """ Assess performance of B-D and L-BFGS-B methods. Add input/output as
     needed
     """
+    scipy.optimize.minimize(cost.costj, [-100.,-3.], method='L-BFGS-B')
 
-    xfbd,jfbd,i2=hw2.bracket_descent([-100,-3])
+    xfbd,jfbd,i2=hw2.bracket_descent([-100.,-3.])
     print('method= ', 'Fortran Bracket Descent')
     print('Value= ', jfbd)
     print('number of iterations', i2)
