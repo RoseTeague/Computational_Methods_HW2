@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors, ticker, cm
 import scipy.optimize
-from hw2mod import cost
-from hw2mod import hw2
+from hw2mod2 import cost
+from hw2mod2 import hw2
 
 def visualize(Nx,Ny,xrange=10,yrange=10):
     """Display cost function with and without noise on an Ny x Nx grid
@@ -118,14 +118,41 @@ def performance():
     """ Assess performance of B-D and L-BFGS-B methods. Add input/output as
     needed
     """
-    scipy.optimize.minimize(cost.costj, [-100.,-3.], method='L-BFGS-B')
+    plt.close()
+    lbfgsx=[]
+    lbfgsy=[]
+    xfbdx=[]
+    xfbdy=[]
 
-    xfbd,jfbd,i2=hw2.bracket_descent([-100.,-3.])
-    print('method= ', 'Fortran Bracket Descent')
-    print('Value= ', jfbd)
-    print('number of iterations', i2)
-    print('x=', xfbd)
+    for [x,y] in [[-100.,3.],[-50.,-3.],[-10.,-3.],[-1.,-3.]]:
+        info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B')
 
+        xfbd,jfbd,i2=hw2.bracket_descent([x,y])
+        print('method:              ', 'Fortran Bracket Descent')
+        print('Value:               ', jfbd)
+        print('number of iterations:', i2)
+        print('x:                   ', xfbd)
+        print('   ')
+        print(info)
+
+        x=scipy.optimize.OptimizeResult.values(info)[4]
+        lbfgsx.append(x[0])
+        lbfgsy.append(x[1])
+        xfbdx.append(xfbd[0])
+        xfbdy.append(xfbd[1])
+
+    f, (p41,p42) = plt.subplots(1,2)
+    p41.plot(lbfgsx,lbfgsy,'rx')
+    p41.set_ylim(0.9999987,0.9999997)
+    p41.xaxis.set_ticks(np.arange(0.9999993,0.9999999,0.0000003))
+    p41.ticklabel_format(useOffset=False)
+    p42.plot(xfbdx,xfbdy,'bx')
+    p42.set_ylim(0.997,1.0003)
+    p42.xaxis.set_ticks(np.arange(0.9985000,1.00005,0.0005))
+    plt.suptitle('Rosemary Teague, performance \n Comparison of converged values')
+ #plt.xlim([0.999,1.001])
+    plt.savefig('hw241', dpi=700)
+    plt.tight_layout(pad=3.5)
 
 if __name__ == '__main__':
     #Add code here to call newton_test, bracket_descent_test, performance
