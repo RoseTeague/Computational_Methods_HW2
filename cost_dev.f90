@@ -4,8 +4,8 @@
 !Module containing cost function and related routines for use with optimization routines
 module cost
   implicit none
-  logical :: c_noise = .False. !when true, white noise is added to cost function using add_noise
-  real(kind=8) :: c_noise_amp=0.d0 !amplitude of noise
+  logical :: c_noise = .True. !when true, white noise is added to cost function using add_noise
+  real(kind=8) :: c_noise_amp=10.d0 !amplitude of noise
 
 contains
 

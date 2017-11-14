@@ -11,6 +11,7 @@ from matplotlib import colors, ticker, cm
 import scipy.optimize
 from hw2mod2 import cost
 from hw2mod2 import hw2
+from time import time
 
 def visualize(Nx,Ny,xrange=10,yrange=10):
     """Display cost function with and without noise on an Ny x Nx grid
@@ -54,6 +55,7 @@ def newton_test(xg,display=False,i=1):
     Further output can be added to the tuple, output, as needed. It may also
     be left empty.
     """
+    cost.c_noise=False
     hw2.tol=10**(-6)
     hw2.itermax=1000
     hw2.newton(xg)
@@ -87,6 +89,7 @@ def bracket_descent_test(xg,display=False,i=1):
 
     Output variables: xf -- computed location of minimum, jf -- computed minimum
     """
+    cost.c_noise=False
     hw2.tol=10**(-6)
     hw2.itermax=1000
     hw2.bracket_descent(xg)
@@ -105,7 +108,7 @@ def bracket_descent_test(xg,display=False,i=1):
         p2.set_ylabel('distance from converged minimum')
         plt.suptitle('Rosemary Teague, bracket_descent_test, initial guess ='+str(xg)+' \n Rate of convergence of a cost function')
         plt.tight_layout(pad=4)
-        plt.savefig('hw32'+str(i), dpi=700)
+        plt.savefig('hw23'+str(i), dpi=700)
 
 
 
@@ -119,40 +122,106 @@ def performance():
     needed
     """
     plt.close()
-    lbfgsx=[]
-    lbfgsy=[]
-    xfbdx=[]
-    xfbdy=[]
+    lbfgsx=[]; lbfgsy=[]; xfbdx=[]; xfbdy=[]; tlbfgsb=[]; txfbd=[]
 
-    for [x,y] in [[-100.,3.],[-50.,-3.],[-10.,-3.],[-1.,-3.]]:
-        info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B')
+    hw2.tol=10**(-14)
+    cost.c_noise=True
+    for cost.c_noise_amp in [0., 1., 10.]:
+        for [x,y] in [[-100.,-3.],[-50.,-3.],[-10.,-3.],[-1.,-3.]]:
 
-        xfbd,jfbd,i2=hw2.bracket_descent([x,y])
-        print('method:              ', 'Fortran Bracket Descent')
-        print('Value:               ', jfbd)
-        print('number of iterations:', i2)
-        print('x:                   ', xfbd)
-        print('   ')
-        print(info)
+            t1=time()
+            info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B')
+            t2=time()
+            tlbfgsb.append(t2-t1)
 
-        x=scipy.optimize.OptimizeResult.values(info)[4]
-        lbfgsx.append(x[0])
-        lbfgsy.append(x[1])
-        xfbdx.append(xfbd[0])
-        xfbdy.append(xfbd[1])
+            t3=time()
+            xfbd,jfbd,i2=hw2.bracket_descent([x,y])
+            t4=time()
+            txfbd.append(t4-t3)
+            # print('method:              ', 'Fortran Bracket Descent')
+            # print('Value:               ', jfbd)
+            # print('number of iterations:', i2)
+            # print('x:                   ', xfbd)
+            # print('c_noise:             ', cost.c_noise)
+            # print('   ')
+            # print(info)
 
+            x=scipy.optimize.OptimizeResult.values(info)[4]
+            lbfgsx.append(x[0]-1.0)
+            lbfgsy.append(x[1]-1.0)
+            xfbdx.append(xfbd[0]-1.0)
+            xfbdy.append(xfbd[1]-1.0)
+
+    plt.close()
     f, (p41,p42) = plt.subplots(1,2)
-    p41.plot(lbfgsx,lbfgsy,'rx')
-    p41.set_ylim(0.9999987,0.9999997)
-    p41.xaxis.set_ticks(np.arange(0.9999993,0.9999999,0.0000003))
+    p41.plot(lbfgsx[0:4],lbfgsy[0:4],'r',marker='x',markersize=12)
+    p41.set_title('Scipy Optimise L-BFGS-B')
+    p41.set_xlabel('x-1')
+    p41.set_ylabel('y-1')
     p41.ticklabel_format(useOffset=False)
-    p42.plot(xfbdx,xfbdy,'bx')
-    p42.set_ylim(0.997,1.0003)
-    p42.xaxis.set_ticks(np.arange(0.9985000,1.00005,0.0005))
+    p42.plot(xfbdx[0:4],xfbdy[0:4],'b',marker='x',markersize=12)
+    p42.set_title('Fortran Bracket Descent')
+    p42.set_xlabel('x-1')
+    p42.set_ylabel('y-1')
+    p42.yaxis.set_ticks(np.linspace(min(xfbdy[0:4]),max(xfbdy[0:4]),3))
+    p42.xaxis.set_ticks(np.linspace(min(xfbdx[0:4]),max(xfbdx[0:4]),3))
+    p42.ticklabel_format(useOffset=False)
     plt.suptitle('Rosemary Teague, performance \n Comparison of converged values')
- #plt.xlim([0.999,1.001])
+    plt.tight_layout(pad=4)
     plt.savefig('hw241', dpi=700)
+
+    plt.close()
+    f2, (p412,p422) = plt.subplots(1,2)
+    p412.plot(lbfgsx[4:8],lbfgsy[4:8],'m',marker='x',markersize=12)
+    p412.set_title('Scipy Optimise L-BFGS-B')
+    p412.set_xlabel('x-1')
+    p412.set_ylabel('y-1')
+    p412.ticklabel_format(useOffset=False)
+    p422.plot(xfbdx[4:8],xfbdy[4:8],'g',marker='x',markersize=12)
+    p422.set_title('Fortran Bracket Descent')
+    p422.set_xlabel('x-1')
+    p422.set_ylabel('y-1')
+    plt.suptitle('Rosemary Teague, performance \n Comparison of converged values with noise=1')
     plt.tight_layout(pad=3.5)
+    plt.savefig('hw242', dpi=700)
+
+
+    plt.close()
+    f3, (p413,p423) = plt.subplots(1,2)
+    p413.plot(lbfgsx[8:],lbfgsy[8:],'#c79fef',marker='x',markersize=12)
+    p413.set_title('Scipy Optimise L-BFGS-B')
+    p413.set_xlabel('x')
+    p413.set_ylabel('y')
+    p413.ticklabel_format(useOffset=False)
+    p423.plot(xfbdx[8:],xfbdy[8:],'c',marker='x',markersize=12)
+    p423.set_title('Fortran Bracket Descent')
+    p423.set_xlabel('x')
+    p423.set_ylabel('y')
+    plt.suptitle('Rosemary Teague, performance \n Comparison of converged values with noise=10')
+    plt.tight_layout(pad=3.5)
+    plt.savefig('hw243', dpi=700)
+
+    plt.close()
+    f4, (p414,p424) = plt.subplots(1,2)
+    p414.plot(tlbfgsb[:4],[-100.,-50.,-10.,-1.],'r',marker='x',markersize=12)
+    p414.plot(tlbfgsb[4:8],[-100.,-50.,-10.,-1.],'m',marker='x',markersize=12)
+    p414.plot(tlbfgsb[8:],[-100.,-50.,-10.,-1.],'#c79fef',marker='x',markersize=12)
+    p414.set_title('Scipy Optimise L-BFGS-B')
+    p414.set_xlabel('Time Taken')
+    p414.set_ylabel('Initial guess')
+    p414.xaxis.set_ticks(np.linspace(min(tlbfgsb),max(tlbfgsb),3))
+    p414.ticklabel_format(useOffset=False)
+    p424.plot(txfbd[:4],[-100.,-50.,-10.,-1.],'b',marker='x',markersize=12)
+    p424.plot(txfbd[4:8],[-100.,-50.,-10.,-1.],'g',marker='x',markersize=12)
+    p424.plot(txfbd[8:],[-100.,-50.,-10.,-1.],'c',marker='x',markersize=12)
+    p424.set_title('Fortran Bracket Descent')
+    p424.set_xlabel('Time Taken')
+    p424.xaxis.set_ticks(np.linspace(min(txfbd),max(txfbd),3))
+    plt.suptitle('Rosemary Teague, performance \n Time taken for values to converge')
+    plt.tight_layout(pad=3.5)
+    plt.savefig('hw244', dpi=700)
+
+
 
 if __name__ == '__main__':
     #Add code here to call newton_test, bracket_descent_test, performance

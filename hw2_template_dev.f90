@@ -247,13 +247,15 @@ end module hw2
 
 program test
   use hw2
+  use cost
   implicit none
-  !integer :: i2
+  integer :: i2
   real(kind=8), dimension(2) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:)=(/-100.d0,3.d0/)
-  call bracket_descent(xguess,xf,jf)
+  xguess(:)=(/-100.d0,-3.d0/)
+
+  call bracket_descent(xguess,xf,jf,i2)
   !call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
   print *, 'test','x=',xf,'j=',jf
