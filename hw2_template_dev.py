@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import colors, ticker, cm
 import scipy.optimize
-from hw2mod2 import cost
-from hw2mod2 import hw2
+from hw2mod import cost
+from hw2mod import hw2
 from time import time
 
 def visualize(Nx,Ny,xmin=-10,xmax=10,ymin=-10,ymax=10):
@@ -21,12 +21,12 @@ def visualize(Nx,Ny,xmin=-10,xmax=10,ymin=-10,ymax=10):
 
     #calculate noiseless cost function at each point on 2D grid
     cost.c_noise=False
-    j=[[cost.costj([xi,yi]) for yi in Y] for xi in X]
+    j=[[cost.costj([xi,yi]) for xi in X] for yi in Y]
 
     #calculate noisey cost function at each point in 2D grid.
     cost.c_noise = True
     cost.c_noise_amp = 1
-    jn=[[cost.costj([xi,yi]) for yi in Y] for xi in X]
+    jn=[[cost.costj([xi,yi]) for xi in X] for yi in Y]
 
     #create contour plots of cost functions with and without noise
     plt.figure()
@@ -65,8 +65,18 @@ def newton_test(xg,display=False,i=1):
 
 
     if display:
+        Minx=min(X)-1
+        Maxx=max(X)+1
+        Miny=min(Y)-1
+        Maxy=max(Y)+1
+        [Xj,Yj]=np.linspace(Minx,Maxx,200),np.linspace(Miny,Maxy,200)
+        #calculate noiseless cost function at each point on 2D grid
+        j=[[cost.costj([xi,yi]) for yi in Yj] for xi in Xj]
+
         f, (p1,p2) = plt.subplots(1,2)
-        p1.plot(X,Y)
+        p1.contourf(Yj, Xj, j, locator=ticker.LogLocator(), cmap=cm.GnBu)
+        p1.plot(X,Y,'g',marker='d')
+        p1.set_xlim(min(X)-1,max(X)+1)
         p1.set_xlabel('X1-location')
         p1.set_ylabel('X2-location')
         p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
@@ -153,13 +163,13 @@ def performance():
             # print('   ')
             #print(info)
 
-            x=scipy.optimize.OptimizeResult.values(info)[4]
+            x=info.x
             lbfgsx.append(x[0])
             lbfgsy.append(x[1])
             xfbdx.append(xfbd[0])
             xfbdy.append(xfbd[1])
 
-            nint=scipy.optimize.OptimizeResult.values(info)[7]
+            nint=info.nit
             nintl.append(nint)
             nintb.append(i2)
 
@@ -233,7 +243,7 @@ def performance():
 if __name__ == '__main__':
     #Add code here to call newton_test, bracket_descent_test, performance
     visualize(200,200)
-    
+
     newton_test([10.,10.],display=True,i=1)
     newton_test([5.,5.],display=True,i=2)
     newton_test([2.,2.],display=True,i=3)
