@@ -12,6 +12,8 @@ import scipy.optimize
 from hw2mod import cost
 from hw2mod import hw2
 from time import time
+from time import clock
+import timeit
 
 def visualize(Nx,Ny,xrange=[-10,10],yrange=[-10,10], Noise=1.0):
     """
@@ -112,23 +114,25 @@ def newton_test(xg,display=False,i=1,timing=False):
     hw2.tol=10**(-6)
     hw2.itermax=1000
     t21=0
+    output=()
 
     if timing:
         N=10
     else:
         N=1
 
-    for i in range(1,N):
+    for j in range(1,N):
         t1=time()
         hw2.newton(xg)
         t2=time()
         t21=t21+(t2-t1)
 
-    output=(t21/N)
-
     X,Y=hw2.xpath
     xf=[X[-1],Y[-1]]
+    jpathn=[j for j in hw2.jpath]
     jf=hw2.jpath[-1]
+
+    output=(t21/N, X, Y, jpathn)
 
     if display:
         Minx=min(X)-1
@@ -146,7 +150,7 @@ def newton_test(xg,display=False,i=1,timing=False):
         p1.set_xlabel('X1-location')
         p1.set_ylabel('X2-location')
         p1.set_title('Convergence Path')
-        p2.plot(np.linspace(0,len(X)-1,len(X)),np.sqrt((X-xf[0])**2+(Y-xf[1])**2))
+        p2.plot(np.linspace(0,len(X)-1,len(X)),hw2.jpath-jf)
         p2.set_xlabel('Iteration number')
         p2.set_ylabel('distance from converged minimum')
         p2.set_title('Rate')
@@ -158,19 +162,82 @@ def newton_test(xg,display=False,i=1,timing=False):
 
 
 def bracket_descent_test(xg,display=False,compare=False,i=1):
-    """ Use bracket-descent to minimize cost function defined in cost module
-    Input variable xg is initial guess for location of minimum. When display
-    is true, 1-2 figures comparing the B-D and Newton steps should be generated
+    """
+    ======================================================================================
+    Use the Bracket Descent method to minimize a cost function, j, defined in cost module.
+    ======================================================================================
 
-    Output variables: xf -- computed location of minimum, jf -- computed minimum
+    Parameters
+    ----------
+    xg : list
+        Initial guess
+    display : Boolean, Optional
+        If set to True, figures will be created to illustrate the optimization
+        path taken and the distance from convergence at each step.
+    compare : Boolean, optional
+        If set to True, a figure will be created to directly compare Newton and
+        Bracket Descent methods.
+    i=1 : Integer, Optional
+        Sets the name of the figures as hw231(/2)_i.png.
+
+    Returns
+    ---------
+    xf : ndarray
+        Computed location of minimum
+    jf : float
+        Computed minimum
+    output : Tuple
+        containing the time taken for the minimia to be found for each of newton and
+        bracket descent methods. An average over 10 tests is taken, only set if
+        compare parameter set to True, otherwise empty.
+
+    Calling this function will produce two figures. The first will containing two
+    subplots illustrating the location of each step in the minimization path, overlayed
+    over the initial cost function, and the distance of j from the final, computed
+    minimum at each iteration.
+    The second plot (which is only produced when 'compare' is set to True) demonstrates
+    the distance of each step from the final, converged minimum at each iteration.
+    This shows that the newton method requires significantly fewer steps and is hence
+    faster.
+
+    Trends Observed
+    ----------------
+    Figures hw321_i show the path taken during a bracket descent conversion is much
+    longer than in a newton conversion (shown in figures hw22i). This is because
+    the B-D method limits the size of a step to 2*L where L is definied by the size
+    of an equilateral triangle whose centroid moved with each step. The method is
+    furthermore designed such that this triangle will only decrease in size per
+    iteration, and hence the maximum length a step can take can only be
+    decreased (not increased) throughout the convergence. The figures further show
+    that steps appear to be taken initially perpendicular to the curvature, finding
+    the minimum along that strip, and then converging in down the parallel Path
+    until they reach a level of tolerance.
+
+    In contrast, the Newton approach is not limited in the size of the steps it is
+    able to take and can hence converge in a much smaller number of iterations.
+    This is a result of the use of gradients in this method. Figures hw22i illustrate
+    how each step travels through many bands on the contour plot (representing
+    differences of 1 order of magnitude each) as the method searches for the
+    direction of minimisation.
+
     """
     cost.c_noise=False
     hw2.tol=10**(-6)
     hw2.itermax=1000
-    t1=0;t2=0;t3=0;t4=0
-    t1 = time()
-    hw2.bracket_descent(xg)
-    t2 = time()
+    t34=0
+    output = ()
+
+    if compare:
+        N=10
+    else:
+        N=1
+
+    for j in range(1,N):
+        t3=time()
+        hw2.bracket_descent(xg)
+        t4=time()
+        t34=t34+(t4-t3)
+
     X,Y=hw2.xpath
     xf=[X[-1],Y[-1]]
     jf=hw2.jpath[-1]
@@ -191,7 +258,7 @@ def bracket_descent_test(xg,display=False,compare=False,i=1):
         p1.set_xlabel('X1-location')
         p1.set_ylabel('X2-location')
         p1.set_title('Convergence Path')
-        p2.plot(np.linspace(0,len(X)-1,len(X)),d1)
+        p2.semilogy(np.linspace(1,len(X),len(X)),hw2.jpath)
         p2.set_xlabel('Iteration number')
         p2.set_ylabel('distance from converged minimum')
         p2.set_title('Rate')
@@ -201,13 +268,12 @@ def bracket_descent_test(xg,display=False,compare=False,i=1):
 
     if compare:
         plt.close('all')
-        t3= time()
-        xf2,jf2,i2=hw2.newton(xg)
-        t4 = time()
-        X2,Y2=hw2.xpath
+        One,=plt.loglog(np.linspace(1,len(X),len(X)),hw2.jpath)
+        xf2,jf2,outputn=newton_test(xg,timing=True)
+        X2,Y2=outputn[1],outputn[2]
         d2=np.sqrt((X2-xf2[0])**2+(Y2-xf2[1])**2)
-        One,=plt.loglog(np.linspace(0,len(X)-1,len(X)),d1)
-        Two,=plt.loglog(np.linspace(0,len(X2)-1,len(X2)),d2)
+        print(np.linspace(1,len(X2),len(X2)),outputn[3])
+        Two,=plt.loglog(np.linspace(1,len(X2),len(X2)),outputn[3])
         One.set_label('Bracket Descent')
         Two.set_label('Newton')
         plt.xlabel('Iteration number')
@@ -216,37 +282,75 @@ def bracket_descent_test(xg,display=False,compare=False,i=1):
         plt.title('Rosemary Teague, bracket_descent_test, initial guess ='+str(xg)+' \n Comparison of Newton and Bracket Descent Methods')
         plt.savefig('hw232_'+str(i), dpi=700)
 
-    jf=cost.costj(xf)
-    return xf,jf,t2-t1,t4-t3
+        output=(outputn[0],t34/N)
+
+    return xf,jf,output
 
 
-def performance():
-    """ Assess performance of B-D and L-BFGS-B methods. Add input/output as
-    needed
+def performance(tol):
     """
-    plt.close()
+    ============================================================================
+    Assesses the performance of Bracket Descent and Scipy L-BFGS-B Methods
+    ============================================================================
+
+    Parameters
+    ------------
+    tol : float
+        Determines the tolerance for minimization
+
+    Returns
+    ------------
+
+    This function will produce 4 figures.
+    The first 3 will represent a comparison of the precison of each method while
+    the 4th will represent a comparison of the timing.
+    The first three show the location of the computed minima for initial guesses
+    of [-100,-3], [-50,-3], [-10,-3] and [-1,-3]. These are overlayed onto the
+    original cost function; the Scipy L-BFGS-B results are represented by red
+    diamonds while the Bracket Descent results are represented by blue diamonds.
+    The three figures represent the cases when the noise amplitude is set to 0,
+    1, and 10.
+
+    The final figure consists of four subplots, the upper row represents the
+    computational time taken for convergence, given an initial x starting point,
+    while the lower represents the number of iterations requried. In each case
+    the Scipy L-BFGS-B method is shown on the left and the Bracket descent is
+    shown on the right. A legend on each plot differentiates the cases when the
+    Noise Ampplitude is set to 0, 1, and 10.
+
+
+    Trends Observed
+    ----------------
+    For all cases, Scipy function seems to be more consistent (rely less on initial guess)
+    than the fortran Bracket Descent method
+
+    """
+    plt.close('all')
 
     count=0
-    hw2.tol=10**(-14)
+    hw2.tol=tol
     nintb=[];nintl=[]; tlbfgsb=[]; txfbd=[];lbfgsx=[]; lbfgsy=[]; xfbdx=[]; xfbdy=[];
     cost.c_noise=True
+
     for cost.c_noise_amp in [0., 1., 10.]:
         count=count+1
 
         for [x,y] in [[-100.,-3.],[-50.,-3.],[-10.,-3.],[-1.,-3.]]:
             t12=0;t34=0
-            for i in range(0,10):
-                t1=time()
-                info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B')
-                t2=time()
-                t12=t12+(t2-t1)
+            for i in range(0,1000):
 
-                t3=time()
+                t1=clock()
+                info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B' ,tol=tol)
+                t2=clock()
+                t12=t12+(t2-t1)
+                print(cost.c_noise_amp, t12)
+
+                t3=clock()
                 xfbd,jfbd,i2=hw2.bracket_descent([x,y])
-                t4=time()
+                t4=clock()
                 t34=t34+(t4-t3)
 
-            tlbfgsb.append(t12/10); txfbd.append(t34/10)
+            tlbfgsb.append(t12/1000); txfbd.append(t34/1000)
 
             # print('method:              ', 'Fortran Bracket Descent')
             # print('Value:               ', jfbd)
@@ -286,11 +390,13 @@ def performance():
         plt.tight_layout(pad=5)
         plt.savefig('hw24'+str(count), dpi=700)
 
+    print(len(lbfgsx), len(xfbdx))
+
     plt.close('all')
     f4, (p414,p424) = plt.subplots(2,2,sharey=True)
     one,=p414[0].plot(tlbfgsb[:4],[np.abs(-100.-lbfgsx[0]),np.abs(-50.-lbfgsx[1]),np.abs(-10.-lbfgsx[2]),np.abs(-1.-lbfgsx[3])],'r',marker='x',markersize=12)
     two,=p414[0].plot(tlbfgsb[4:8],[np.abs(-100.-lbfgsx[4]),np.abs(-50.-lbfgsx[5]),np.abs(-10.-lbfgsx[6]),np.abs(-1.-lbfgsx[7])],'m',marker='x',markersize=12)
-    three,=p414[0].plot(tlbfgsb[8:],[np.abs(-100.-lbfgsx[0]),np.abs(-50.-lbfgsx[1]),np.abs(-10.-lbfgsx[2]),np.abs(-1.-lbfgsx[3])],'#c79fef',marker='x',markersize=12)
+    three,=p414[0].plot(tlbfgsb[8:],[np.abs(-100.-lbfgsx[8]),np.abs(-50.-lbfgsx[9]),np.abs(-10.-lbfgsx[10]),np.abs(-1.-lbfgsx[11])],'#c79fef',marker='x',markersize=12)
     one.set_label('No Noise')
     two.set_label('Noise = 1.0')
     three.set_label('Noise = 10.0')
@@ -301,7 +407,7 @@ def performance():
     p414[0].ticklabel_format(useOffset=False)
     uno,=p414[1].plot(txfbd[:4],[np.abs(-100.-xfbdx[0]),np.abs(-50.-xfbdx[1]),np.abs(-10.-xfbdx[2]),np.abs(-1.-xfbdx[3])],'b',marker='x',markersize=12)
     dos,=p414[1].plot(txfbd[4:8],[np.abs(-100.-xfbdx[4]),np.abs(-50.-xfbdx[5]),np.abs(-10.-xfbdx[6]),np.abs(-1.-xfbdx[7])],'g',marker='x',markersize=12)
-    tres,=p414[1].plot(txfbd[8:],[np.abs(-100.-xfbdx[0]),np.abs(-50.-xfbdx[1]),np.abs(-10.-xfbdx[2]),np.abs(-1.-xfbdx[3])],'c',marker='x',markersize=12)
+    tres,=p414[1].plot(txfbd[8:],[np.abs(-100.-xfbdx[8]),np.abs(-50.-xfbdx[9]),np.abs(-10.-xfbdx[10]),np.abs(-1.-xfbdx[11])],'c',marker='x',markersize=12)
     uno.set_label('No Noise')
     dos.set_label('Noise = 1.0')
     tres.set_label('Noise = 10.0')
@@ -311,7 +417,7 @@ def performance():
     p414[1].xaxis.set_ticks(np.linspace(min(txfbd),max(txfbd),3))
     one1,=p424[0].plot(nintl[:4],[np.abs(-100.-lbfgsx[0]),np.abs(-50.-lbfgsx[1]),np.abs(-10.-lbfgsx[2]),np.abs(-1.-lbfgsx[3])],'r',marker='x',markersize=12)
     two2,=p424[0].plot(nintl[4:8],[np.abs(-100.-lbfgsx[4]),np.abs(-50.-lbfgsx[5]),np.abs(-10.-lbfgsx[6]),np.abs(-1.-lbfgsx[7])],'m',marker='x',markersize=12)
-    three3,=p424[0].plot(nintl[8:],[np.abs(-100.-lbfgsx[0]),np.abs(-50.-lbfgsx[1]),np.abs(-10.-lbfgsx[2]),np.abs(-1.-lbfgsx[3])],'#c79fef',marker='x',markersize=12)
+    three3,=p424[0].plot(nintl[8:],[np.abs(-100.-lbfgsx[8]),np.abs(-50.-lbfgsx[9]),np.abs(-10.-lbfgsx[10]),np.abs(-1.-lbfgsx[11])],'#c79fef',marker='x',markersize=12)
     one1.set_label('No Noise')
     two2.set_label('Noise = 1.0')
     three3.set_label('Noise = 10.0')
@@ -320,7 +426,7 @@ def performance():
     p424[0].ticklabel_format(useOffset=False)
     uno1,=p424[1].plot(nintb[:4],[np.abs(-100.-xfbdx[0]),np.abs(-50.-xfbdx[1]),np.abs(-10.-xfbdx[2]),np.abs(-1.-xfbdx[3])],'b',marker='x',markersize=12)
     dos2,=p424[1].plot(nintb[4:8],[np.abs(-100.-xfbdx[4]),np.abs(-50.-xfbdx[5]),np.abs(-10.-xfbdx[6]),np.abs(-1.-xfbdx[7])],'g',marker='x',markersize=12)
-    tres3,=p424[1].plot(nintb[8:],[np.abs(-100.-xfbdx[0]),np.abs(-50.-xfbdx[1]),np.abs(-10.-xfbdx[2]),np.abs(-1.-xfbdx[3])],'c',marker='x',markersize=12)
+    tres3,=p424[1].plot(nintb[8:],[np.abs(-100.-xfbdx[8]),np.abs(-50.-xfbdx[9]),np.abs(-10.-xfbdx[10]),np.abs(-1.-xfbdx[11])],'c',marker='x',markersize=12)
     uno1.set_label('No Noise')
     dos2.set_label('Noise = 1.0')
     tres3.set_label('Noise = 10.0')
