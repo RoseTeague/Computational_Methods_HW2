@@ -29,6 +29,7 @@ module hw2
     logical :: flag_converged
     integer, allocatable, dimension(:) :: IPIV
 
+
     N=size(xguess)
     NRHS = 1
     LDA = N
@@ -43,9 +44,9 @@ module hw2
 
     allocate(jh(N,N),Htemp(N,N),IPIV(N),jg(N,1),Gtemp(N,1),h(N,1))
 
-    call costj(xpath2(:,i1),j2)
+    call costj(xpath2(:,1),jpath2(1))
     do i1=1,(itermax)
-        jpath2(i1)=j2
+        !jpath2(i1)=j2
         call costj_grad2d(xpath2(:,i1),jg(:,1))
         call costj_hess2d(xpath2(:,i1),jh)
 
@@ -55,19 +56,19 @@ module hw2
         !extract soln from Gtemp
         h = Gtemp(1:N,:)
         xpath2(:,i1+1)=xpath2(:,i1)+h(:,1)
-        call costj(xpath2(:,i1+1),j2)
+        call costj(xpath2(:,i1+1),jpath2(i1+1))
         l=i1
-        call convergence_check(jpath2(i1),j2,flag_converged)
+        call convergence_check(jpath2(i1),jpath2(i1+1),flag_converged)
         if (flag_converged) exit
 
     end do
 
     i2=l
-    allocate(xpath(N,i2+1),jpath(i2+1))
-    xpath(:,:)=xpath2(:,1:i2+1)
-    jpath(:)=jpath2(1:i2+1)
-    xf(:,1)=xpath(:,i2+1)
-    jf=j2
+    allocate(xpath(N,i2),jpath(i2))
+    xpath(:,:)=xpath2(:,1:i2)
+    jpath(:)=jpath2(1:i2)
+    xf(:,1)=xpath(:,i2)
+    jf=jpath2(i2)
 
     deallocate(xpath2,jh,Htemp,IPIV,jg,Gtemp,h,jpath2)
   end subroutine newton
@@ -251,14 +252,16 @@ program test
   use cost
   implicit none
   integer :: i2
-  real(kind=8), dimension(2) :: xguess, xf
+  real(kind=8), dimension(2,1) :: xguess, xf
   real(kind=8) :: jf!jh(size(xguess),size(xguess))
 
-  xguess(:)=(/-100.d0,-3.d0/)
+  xguess(:,1)=(/-100.d0,-3.d0/)
 
-  call bracket_descent(xguess,xf,jf,i2)
-  !call newton(xguess,xf,jf,i2)
+  !call bracket_descent(xguess,xf,jf,i2)
+  call newton(xguess,xf,jf,i2)
   !call costj_hess2d(xguess,jh)
+  print *, xpath
+  print *, jpath
   print *, 'test','x=',xf,'j=',jf
 !  print *, 'jpath= ',jpath
 

@@ -129,8 +129,6 @@ def newton_test(xg,display=False,i=1,timing=False):
     X,Y=hw2.xpath
     xf=[X[-1],Y[-1]]
     jf=hw2.jpath[-1]
-    print(hw2.jpath,hw2.xpath)
-
 
     if display:
         Minx=min(X)-1
