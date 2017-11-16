@@ -23,7 +23,7 @@ module hw2
     real(kind=8), dimension(:,:), intent(in) :: xguess !do not need to explicitly specify dimension of input variable when subroutine is within a module
     integer, intent(out) :: i2
     real(kind=8), intent(out) :: xf(size(xguess),1),jf !location of minimum, minimum cost
-    real(kind=8), allocatable :: Htemp(:,:),Gtemp(:,:),h(:,:),jg(:,:),jh(:,:),xpath2(:,:)
+    real(kind=8), allocatable :: Htemp(:,:),Gtemp(:,:),h(:,:),jg(:,:),jh(:,:),xpath2(:,:),jpath2(:)
     real(kind=8) :: j1,j2
     integer :: l,i1,N,NRHS,LDA,LDB,INFO
     logical :: flag_converged
@@ -37,7 +37,7 @@ module hw2
     if (allocated(jpath)) deallocate(jpath)
     if (allocated(xpath)) deallocate(xpath)
 
-    allocate(xpath2(N,itermax),jpath(itermax))
+    allocate(xpath2(N,itermax),jpath2(itermax))
     xpath2(:,1)=xguess(:,1)
 
 
@@ -45,7 +45,7 @@ module hw2
 
     call costj(xpath2(:,i1),j2)
     do i1=1,(itermax)
-        jpath(i1)=j2
+        jpath2(i1)=j2
         call costj_grad2d(xpath2(:,i1),jg(:,1))
         call costj_hess2d(xpath2(:,i1),jh)
 
@@ -57,18 +57,19 @@ module hw2
         xpath2(:,i1+1)=xpath2(:,i1)+h(:,1)
         call costj(xpath2(:,i1+1),j2)
         l=i1
-        call convergence_check(jpath(i1),j2,flag_converged)
+        call convergence_check(jpath2(i1),j2,flag_converged)
         if (flag_converged) exit
 
     end do
 
     i2=l
-    allocate(xpath(N,i2+1))
+    allocate(xpath(N,i2+1),jpath(i2+1))
     xpath(:,:)=xpath2(:,1:i2+1)
+    jpath(:)=jpath2(1:i2+1)
     xf(:,1)=xpath(:,i2+1)
     jf=j2
 
-    deallocate(xpath2,jh,Htemp,IPIV,jg,Gtemp,h)
+    deallocate(xpath2,jh,Htemp,IPIV,jg,Gtemp,h,jpath2)
   end subroutine newton
 
 

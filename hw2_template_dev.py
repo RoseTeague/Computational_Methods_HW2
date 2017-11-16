@@ -13,11 +13,39 @@ from hw2mod import cost
 from hw2mod import hw2
 from time import time
 
-def visualize(Nx,Ny,xmin=-10,xmax=10,ymin=-10,ymax=10):
-    """Display cost function with and without noise on an Ny x Nx grid
+def visualize(Nx,Ny,xrange=[-10,10],yrange=[-10,10], Noise=1.0):
+    """
+    ===============================================================
+    Visualization of a 2D cost function, j, of the form:
+
+        j = j + (1 - x)^2 + 20(y - x^2)^2
+    ===============================================================
+
+    Parameters
+    ------------
+    Nx : Integer
+        Number of points along the x-direction to be plotted
+    Ny : Integer
+        Number of points along the y-direction to be plotted
+    xrange : list, optional
+        Range of x-points to be considered. Default from -10<x<10
+    yrange : list, optional
+        Range of y-points to be considered. Default from -10<y<10
+    Noise : float
+        Amplitude of Noise to be considered in second plot.
+
+    Returns
+    ----------
+    N/A
+    Calling this function will save two figures to the users directory. A plot
+    titled hw211.png will display a contour plot of the cost function, on a
+    logarithmic scale in j, between the values specified in xrange and yrange.
+    A second plot titled hw212.png will display the same function over the same
+    range but with a random noise added, the amplitude of which can be set as
+    a parameter.
     """
     #Create 2D array of points
-    [X,Y]=np.linspace(xmin,xmax,Nx),np.linspace(ymin,ymax,Ny)
+    [X,Y]=np.linspace(xrange[0],xrange[1],Nx),np.linspace(yrange[0],yrange[1],Ny)
 
     #calculate noiseless cost function at each point on 2D grid
     cost.c_noise=False
@@ -25,7 +53,7 @@ def visualize(Nx,Ny,xmin=-10,xmax=10,ymin=-10,ymax=10):
 
     #calculate noisey cost function at each point in 2D grid.
     cost.c_noise = True
-    cost.c_noise_amp = 1
+    cost.c_noise_amp = Noise
     jn=[[cost.costj([xi,yi]) for xi in X] for yi in Y]
 
     #create contour plots of cost functions with and without noise
@@ -39,29 +67,69 @@ def visualize(Nx,Ny,xmin=-10,xmax=10,ymin=-10,ymax=10):
     fig, ax = plt.subplots()
     cpn = ax.contourf(X, Y, jn, locator=ticker.LogLocator(), cmap=cm.GnBu)
     cbar = fig.colorbar(cpn)
-    plt.title('Rosemary Teague, Visualize \n 2D cost function, noise amplitude='+str(cost.c_noise_amp))
+    plt.title('Rosemary Teague, Visualize \n 2D cost function, Noise amplitude='+str(cost.c_noise_amp))
     plt.savefig('hw212', dpi = 700)
-    #plt.show()
 
 
 
-def newton_test(xg,display=False,i=1):
-    """ Use Newton's method to minimize cost function defined in cost module
-    Input variable xg is initial guess for location of minimum. When display
-    is true, a figure illustrating the convergence of the method should be
-    generated
+def newton_test(xg,display=False,i=1,timing=False):
+    """
+    ============================================================================
+    Use Newton's method to minimize a cost function, j, defined in cost module.
+    ============================================================================
 
-    Output variables: xf -- computed location of minimum, jf -- computed minimum
-    Further output can be added to the tuple, output, as needed. It may also
-    be left empty.
+    Parameters
+    ----------
+    xg : list
+        Initial guess
+    display : Boolean, Optional
+        If set to True, figures will be created to illustrate the optimization
+        path taken and the distance from convergence at each step.
+    i=1 : Integer, Optional
+        Sets the name of the figures as hw22i.png
+    timing : Boolean, Optional
+        If set to true, an average time will be calculated for the completion
+        of finding a minimum and will be appended to the tuple output.
+
+    Returns
+    ---------
+    xf : ndarray
+        Computed location of minimum
+    jf : float
+        Computed minimum
+    output : Tuple
+        containing the time taken for the minimia to be found. An
+        average over 10 tests, only set if timining parameter set to True, otherwise
+        empty.
+
+    Calling this function will produce a figure containing two subplots. The first
+    will illustrate the location of each step in the minimization path, overlayed
+    over the initial cost function. The second will illustrate the distance from
+    the final, computed minimum at each iteration.
+
     """
     cost.c_noise=False
     hw2.tol=10**(-6)
     hw2.itermax=1000
-    hw2.newton(xg)
+    t21=0
+
+    if timing:
+        N=10
+    else:
+        N=1
+
+    for i in range(1,N):
+        t1=time()
+        hw2.newton(xg)
+        t2=time()
+        t21=t21+(t2-t1)
+
+    output=(t21/N)
+
     X,Y=hw2.xpath
     xf=[X[-1],Y[-1]]
     jf=hw2.jpath[-1]
+    print(hw2.jpath,hw2.xpath)
 
 
     if display:
@@ -88,9 +156,6 @@ def newton_test(xg,display=False,i=1):
         plt.tight_layout(pad=4)
         plt.savefig('hw22'+str(i), dpi=700)
 
-
-    output = ()
-    jf=cost.costj(xf)
     return xf,jf,output
 
 
@@ -271,7 +336,7 @@ def performance():
 
 
 if __name__ == '__main__':
-    #Add code here to call newton_test, bracket_descent_test, performance
+
     visualize(200,200)
 
     newton_test([10.,10.],display=True,i=1)
