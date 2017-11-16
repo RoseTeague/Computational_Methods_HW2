@@ -321,15 +321,34 @@ def performance(tol):
 
     Trends Observed
     ----------------
-    For all cases, Scipy function seems to be more consistent (rely less on initial guess)
-    than the fortran Bracket Descent method
+    For all cases, the Scipy minimization function appears to be more consistent
+    (to rely less on the initial guess) than the fortran Bracket Descent method.
+    This is seen in figures hw241-hw243, where the B-D results are seen to cover
+    a broader spead of final coordinated. These figures also illustrate that as
+    the level of noise of the cost function is increased, the Scipy L-BFGS-B
+    method becomes increasingly favourable over the Bracket descent approach,
+    producing more precise results each time.
+    This is a result of the lack of consideration for noise within the Bracket
+    Descent method; that is to say that any random fluctations which result in
+    two neighbouring points (along the convergence path) lying within the
+    tolerance limit will be assumed to be the true minimum of the function as
+    defined by the B-D method. However, it is likely that the Scipy L-BFGS-B
+    method is adapted to smooth out noisy functions and hence find the true
+    minimum more reliably.
+
+    A consideration of figure hw244, however, demonstrates an advantage of the
+    B-D method over the Scipy L-BGFS-B minimization in the form of timing. It can
+    be seen that despite requiring more iterations before converging to within a
+    set tolerance, the total computational time is less to within a factor of 10.
+
+
 
     """
     plt.close('all')
 
     count=0
     hw2.tol=tol
-    nintb=[];nintl=[]; tlbfgsb=[]; txfbd=[];lbfgsx=[]; lbfgsy=[]; xfbdx=[]; xfbdy=[];
+    nintb=[];nintl=[]; tlbfgsb=[]; txfbd=[]; lbfgsx=[]; lbfgsy=[]; xfbdx=[]; xfbdy=[];
     cost.c_noise=True
 
     for cost.c_noise_amp in [0., 1., 10.]:
@@ -338,19 +357,19 @@ def performance(tol):
         for [x,y] in [[-100.,-3.],[-50.,-3.],[-10.,-3.],[-1.,-3.]]:
             t12=0;t34=0
             for i in range(0,1000):
-
-                t1=clock()
-                info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B' ,tol=tol)
-                t2=clock()
+                t1=time()
+                scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B' ,tol=tol)
+                t2=time()
                 t12=t12+(t2-t1)
-                print(cost.c_noise_amp, t12)
 
-                t3=clock()
-                xfbd,jfbd,i2=hw2.bracket_descent([x,y])
-                t4=clock()
+                t3=time()
+                hw2.bracket_descent([x,y])
+                t4=time()
                 t34=t34+(t4-t3)
 
             tlbfgsb.append(t12/1000); txfbd.append(t34/1000)
+            info=scipy.optimize.minimize(cost.costj, [x,y], method='L-BFGS-B' ,tol=tol)
+            xfbd,jfbd,i2=hw2.bracket_descent([x,y])
 
             # print('method:              ', 'Fortran Bracket Descent')
             # print('Value:               ', jfbd)
@@ -387,22 +406,21 @@ def performance(tol):
         Scipy.set_label('Scipy optimize L-BFGS-B')
         plt.legend(loc='upper left', fontsize='small')
         plt.suptitle('Rosemary Teague, performance \n Comparison of converged values, Noise='+str(int(cost.c_noise_amp)))
-        plt.tight_layout(pad=5)
+        #plt.tight_layout(pad=5)
         plt.savefig('hw24'+str(count), dpi=700)
-
-    print(len(lbfgsx), len(xfbdx))
+        print(tlbfgsb)
 
     plt.close('all')
     f4, (p414,p424) = plt.subplots(2,2,sharey=True)
-    one,=p414[0].plot(tlbfgsb[:4],[np.abs(-100.-lbfgsx[0]),np.abs(-50.-lbfgsx[1]),np.abs(-10.-lbfgsx[2]),np.abs(-1.-lbfgsx[3])],'r',marker='x',markersize=12)
-    two,=p414[0].plot(tlbfgsb[4:8],[np.abs(-100.-lbfgsx[4]),np.abs(-50.-lbfgsx[5]),np.abs(-10.-lbfgsx[6]),np.abs(-1.-lbfgsx[7])],'m',marker='x',markersize=12)
-    three,=p414[0].plot(tlbfgsb[8:],[np.abs(-100.-lbfgsx[8]),np.abs(-50.-lbfgsx[9]),np.abs(-10.-lbfgsx[10]),np.abs(-1.-lbfgsx[11])],'#c79fef',marker='x',markersize=12)
+    one,=p414[0].plot(tlbfgsb[:4],[np.abs(-100.),np.abs(-50.),np.abs(-10.),np.abs(-1.)],'r',marker='x',markersize=12)
+    two,=p414[0].plot(tlbfgsb[4:8],[np.abs(-100.),np.abs(-50.),np.abs(-10.),np.abs(-1.)],'m',marker='x',markersize=12)
+    three,=p414[0].plot(tlbfgsb[8:],[np.abs(-100.),np.abs(-50.),np.abs(-10.),np.abs(-1.)],'#c79fef',marker='x',markersize=12)
     one.set_label('No Noise')
     two.set_label('Noise = 1.0')
     three.set_label('Noise = 10.0')
     p414[0].set_title('Scipy Optimise L-BFGS-B')
     p414[0].set_xlabel('Time Taken')
-    p414[0].legend( loc = 'upper left', fontsize = 'x-small')
+    p414[0].legend( loc = 'upper right', fontsize = 'x-small')
     p414[0].xaxis.set_ticks(np.linspace(min(tlbfgsb),max(tlbfgsb),3))
     p414[0].ticklabel_format(useOffset=False)
     uno,=p414[1].plot(txfbd[:4],[np.abs(-100.-xfbdx[0]),np.abs(-50.-xfbdx[1]),np.abs(-10.-xfbdx[2]),np.abs(-1.-xfbdx[3])],'b',marker='x',markersize=12)
@@ -434,21 +452,21 @@ def performance(tol):
     p424[1].legend(loc = 'upper left', fontsize = 'x-small')
     f4.text(0.04, 0.5, 'Initial x-distance from Converged minimum', va='center', rotation='vertical')
     plt.suptitle('Rosemary Teague, performance \n Time taken for values to converge',fontsize='large')
-    plt.tight_layout(pad=3.5, h_pad=0,w_pad=0)
+    plt.tight_layout(pad=3.5, h_pad=1,w_pad=1)
     plt.savefig('hw244', dpi=700)
 
 
 
 if __name__ == '__main__':
+    #
+    # visualize(200,200)
+    #
+    # newton_test([10.,10.],display=True,i=1)
+    # newton_test([5.,5.],display=True,i=2)
+    # newton_test([2.,2.],display=True,i=3)
+    #
+    # bracket_descent_test([10.,10.],display=True,compare=True,i=1)
+    # bracket_descent_test([5.,5.],display=True,compare=True,i=2)
+    # bracket_descent_test([2.,2.],display=True,compare=True,i=3)
 
-    visualize(200,200)
-
-    newton_test([10.,10.],display=True,i=1)
-    newton_test([5.,5.],display=True,i=2)
-    newton_test([2.,2.],display=True,i=3)
-
-    bracket_descent_test([10.,10.],display=True,compare=True,i=1)
-    bracket_descent_test([5.,5.],display=True,compare=True,i=2)
-    bracket_descent_test([2.,2.],display=True,compare=True,i=3)
-
-    performance()
+    performance(10**(-6))
